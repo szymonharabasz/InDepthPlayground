@@ -228,11 +228,11 @@ struct Customer {
 }
 
 let customer = Customer(id: "30", email: "mayolover@gmail.com", balance: 4750, firstName: "Jake", lastName: "Freemason")
-print(customer.firstName)
+print(customer.firstName ?? "default")
 if let firstName = customer.firstName, let _ = customer.lastName, 4500..<5000 ~= customer.balance {
     print("Customer's first name is \(firstName), they have some last name, and they can buy something.")
 }
-print(customer.displayName)
+print(customer.displayName ?? "default")
 
 switch customer.firstName {
 case .some(let name): print("First name is \(name).")
@@ -323,4 +323,104 @@ case .enabled: print("Turn up the jam!")
 case .disabled: print("sshh")
 case .unknown: print("Ask the user for the audio settings.")
 }
-print(audioSetting.rawValue)
+print(audioSetting.rawValue ?? "default")
+
+let path = "www.manning.com"
+guard let url = URL(string: path) else {
+    fatalError("Could not create url on \(#line) in \(#function)")
+}
+
+print("--> 5.1 Struct initializer rules - exercise")
+
+struct Pancakes {
+    enum SyrupType {
+        case corn, molasses, maple
+    }
+
+    let syrupType: SyrupType
+    let stackSize: Int
+}
+
+extension Pancakes {
+    init(syrupType: SyrupType) {
+        self.stackSize = 10
+        self.syrupType = syrupType
+    }
+}
+
+let pancakes = Pancakes(syrupType: .corn, stackSize: 8)
+let morePancakes = Pancakes(syrupType: .maple)
+
+print("5.2 Initializers and subclassing - exercise")
+
+class Device {
+    var serialNumber: String
+    var room: String
+
+    init(serialNumber: String, room: String) {
+        print("Calling HandHeldTelevision::init")
+        self.serialNumber = serialNumber
+        self.room = room
+    }
+
+    convenience init() {
+        self.init(serialNumber: "Unknown", room: "Unknown")
+    }
+
+    convenience init(serialNumber: String) {
+        print("Calling Device::convenience init")
+        self.init(serialNumber: serialNumber, room: "Unknown")
+    }
+
+    convenience init(room: String) {
+        self.init(serialNumber: "Unknown", room: room)
+    }
+}
+
+class Television: Device {
+    enum ScreenType {
+        case led, oled, lcd, unknown
+    }
+    enum Resolution {
+        case ultraHd, fullHd, hd, sd, unknown
+    }
+    let resolution: Resolution
+    let screenType: ScreenType
+
+    init(resolution: Resolution, screenType: ScreenType, serialNumber: String, room: String) {
+        print("Calling Television::init")
+        self.resolution = resolution
+        self.screenType = screenType
+        super.init(serialNumber: serialNumber, room: room)
+    }
+
+    convenience override init(serialNumber: String, room: String) {
+        print("Calling Television::convenience override init")
+        self.init(resolution: .unknown, screenType: .unknown, serialNumber: serialNumber, room: room)
+    }
+}
+
+let firstTelevision = Television(room: "Lobby")
+let secondTelevision = Television(serialNumber: "abc")
+
+print("5.3 Minimizing class initializers - exercise")
+
+class HandHeldTelevision: Television {
+    let weight: Int
+
+    init(weight: Int, resolution: Resolution, screenType: ScreenType, serialNumber: String, room: String) {
+        self.weight = weight
+        super.init(resolution: resolution, screenType: screenType, serialNumber: serialNumber, room: room)
+    }
+
+    convenience override init(resolution: Resolution, screenType: ScreenType, serialNumber: String, room: String) {
+        self.init(resolution: resolution, screenType: screenType, serialNumber: serialNumber, room: room)
+    }
+}
+
+let handHeldTelevision = HandHeldTelevision(serialNumber: "293nr30znNdjW")
+
+// 'required' initializers must be implemented in a subclass, which is needed for use in factory
+// methods (returning 'Self') and when implementing a protocol which defines an initializer.
+// On the other hand, in the latter case, initializers don't need to be 'required' if the class
+// is 'final's
