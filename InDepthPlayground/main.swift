@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import AppKit
 
 print("--> 2.1 Or vs. and")
 
@@ -246,7 +247,11 @@ case nil: print("Customer didn't enter a first name.")
 
 print("--> 4.3 Variable shadowing")
 
-extension Customer: CustomStringConvertible {
+extension Customer: CustomStringConvertible, CustomDebugStringConvertible {
+    var debugDescription: String {
+        return "Customer id: \(id)"
+    }
+
     var description: String {
         var customDescription = "\(id), \(email)"
         if let firstName = firstName {
@@ -351,7 +356,7 @@ extension Pancakes {
 let pancakes = Pancakes(syrupType: .corn, stackSize: 8)
 let morePancakes = Pancakes(syrupType: .maple)
 
-print("5.2 Initializers and subclassing - exercise")
+print("--> 5.2 Initializers and subclassing - exercise")
 
 class Device {
     var serialNumber: String
@@ -403,7 +408,7 @@ class Television: Device {
 let firstTelevision = Television(room: "Lobby")
 let secondTelevision = Television(serialNumber: "abc")
 
-print("5.3 Minimizing class initializers - exercise")
+print("--> 5.3 Minimizing class initializers - exercise")
 
 class HandHeldTelevision: Television {
     let weight: Int
@@ -414,7 +419,7 @@ class HandHeldTelevision: Television {
     }
 
     convenience override init(resolution: Resolution, screenType: ScreenType, serialNumber: String, room: String) {
-        self.init(resolution: resolution, screenType: screenType, serialNumber: serialNumber, room: room)
+        self.init(weight: 0, resolution: resolution, screenType: screenType, serialNumber: serialNumber, room: room)
     }
 }
 
@@ -424,3 +429,401 @@ let handHeldTelevision = HandHeldTelevision(serialNumber: "293nr30znNdjW")
 // methods (returning 'Self') and when implementing a protocol which defines an initializer.
 // On the other hand, in the latter case, initializers don't need to be 'required' if the class
 // is 'final's
+
+print("--> 6.1 Errors in Swift")
+
+enum ParseLocationError: Error {
+    case invalidData
+    case locationDoesNotExist
+    case middleOfTheOcean
+}
+
+struct Location {
+    let latitude: Double
+    let longitude: Double
+}
+
+@discardableResult
+func parseLocation(_ latitude: String, _ longitude: String) throws -> Location {
+    guard let latitude = Double(latitude), let longitude = Double(longitude)
+            else {
+        throw ParseLocationError.invalidData
+    }
+    return Location(latitude: latitude, longitude: longitude)
+}
+
+do {
+    try parseLocation("I'm not a double", "4.898431")
+} catch {
+    print(error)
+}
+
+print("--> 6.2 Error propagation and catching")
+
+struct Recipe {
+    let ingredients: [String]
+    let steps: [String]
+}
+
+enum ParseRecipeError: Error {
+    case parseError(line: Int, symbol: String)
+    case noRecipeDetected
+    case noIngredientsDetected
+}
+
+extension ParseRecipeError: LocalizedError {
+    var errorDescription: String? {
+        switch self {
+        case .parseError: return NSLocalizedString("The HTML file had unexpected symbols.",
+                comment: "Parsing error reason unexpected symbols")
+        case .noIngredientsDetected: return NSLocalizedString("No ingredients were detected.",
+                comment: "Parsing error reason no ingredients")
+        case .noRecipeDetected: return NSLocalizedString("No recipe was detected.",
+                comment: "Parsing error reason no recipe")
+        }
+    }
+
+    var failureReason: String? {
+        switch self {
+
+        case .parseError(line: let line, symbol: let symbol):
+            return String(format: NSLocalizedString("Prsing data failed at line: %i and symbol %@.",
+                    comment: "Parsing error line symbol"), line, symbol)
+        case .noRecipeDetected:
+            return NSLocalizedString("The recipe seems to be missing a recipe.",
+                    comment: "Parsing error reason missing recipe")
+        case .noIngredientsDetected:
+            return NSLocalizedString("The recipe seems to be missing its ingredients.",
+                    comment: "Parsing error reason missing ingredients")
+        }
+    }
+    public var recoverySuggestion: String? {
+        return "Please try a different recipe."
+    }
+}
+
+extension ParseRecipeError: CustomNSError {
+    public private(set) static var errorDomain: String = "com.recipeextractor"
+    public var errorCode: Int {
+        return 300
+    }
+    public var errorUserInfo: [String: Any] {
+        return [
+            NSLocalizedDescriptionKey: errorDescription ?? "",
+            NSLocalizedFailureReasonErrorKey: failureReason ?? "",
+            NSLocalizedRecoverySuggestionErrorKey: recoverySuggestion ?? ""
+        ]
+    }
+}
+
+let nsError: NSError = ParseRecipeError.parseError(line: 3, symbol: "#") as NSError
+print(nsError)
+
+struct RecipeExtractor {
+    let html: String
+    func extractRecipe() throws -> Recipe {
+        return try parseWebpage(html)
+    }
+
+    private func parseWebpage(_ html: String) throws -> Recipe {
+        let ingredients = try parseIngredients(html)
+        let steps = try parseSteps(html)
+        return Recipe(ingredients: ingredients, steps: steps)
+    }
+
+    private func parseIngredients(_ html: String) throws -> [String] {
+        throw ParseRecipeError.noIngredientsDetected
+    }
+
+    private func parseSteps(_ html: String) throws -> [String] {
+        throw ParseRecipeError.noRecipeDetected
+    }
+}
+
+struct ErrorHandler {
+    static let `default` = ErrorHandler()
+    let genericMessage = "Sorry! Something went wrong"
+
+    func handleError(_ error: Error) {
+        presentToUser(message: genericMessage)
+    }
+
+    func handleError(_ error: LocalizedError) {
+        if let errorDescription = error.errorDescription {
+            presentToUser(message: errorDescription)
+        } else {
+            presentToUser(message: genericMessage)
+        }
+    }
+
+    func presentToUser(message: String) {
+        print(message)
+    }
+}
+
+let html = "<html></html>"
+let recipeExtractor = RecipeExtractor(html: html)
+
+do {
+    let _ = try recipeExtractor.extractRecipe()
+} catch {
+    ErrorHandler.default.handleError(error)
+}
+
+print("--> 7.3 Multiple constraints - exercise")
+
+// Hmm... we don't need to specify constraints explicitly in the new Swift?
+func occurrences<T> (in arr: [T]) -> [T: Int] {
+    var result = [T: Int]()
+    for elem in arr {
+        if let count = result[elem] {
+            result[elem] = count + 1
+        } else {
+            result[elem] = 1
+        }
+    }
+    return result
+}
+
+struct Point: Hashable {
+    let x: Float
+    let y: Float
+}
+print(occurrences(in: [1, 2, 3, 4, 3, 2, 3, 4, 1, 6]))
+print(occurrences(in: [
+    Point(x: 1.0, y: 1.0),
+    Point(x: 1.0, y: 1.0),
+    Point(x: 1.0, y: 2.0)
+]))
+
+func logger<T>(of instance: T) where T: CustomStringConvertible & CustomDebugStringConvertible {
+    print("Description: \(instance.description), debug description: \(instance.debugDescription)")
+}
+
+logger(of: customer)
+
+print("--> 7.4 Creating a generic type - exercise")
+
+class Cache<K: Hashable> {
+    private var dict = [K: Any]()
+
+    func put(key: K, value: Any) {
+        dict[key] = value
+    }
+    func contains(key: K) -> Bool {
+        return dict.keys.contains(key)
+    }
+    func get(key: K) -> Any? {
+        return dict[key]
+    }
+    func evict(key: K) {
+        dict.removeValue(forKey: key)
+    }
+    func evictAll() {
+        dict.removeAll()
+    }
+}
+
+print("--> 8.2 The why of associated types and 8.3 Passing protocols with associated types")
+
+protocol Worker {
+    associatedtype Input
+    associatedtype Output
+
+    @discardableResult
+    func start(input: Input) -> Output
+}
+class MailJob: Worker {
+    typealias Input = String
+    typealias Output = Bool
+
+    func start(input: String) -> Bool {
+        return true
+    }
+}
+class FileRemover: Worker {
+    func start(input: URL) -> [String] {
+        do {
+            var results = [String]()
+            let fileManager = FileManager.default
+            let fileURLs = try fileManager.contentsOfDirectory(at: input,
+                    includingPropertiesForKeys: nil)
+
+            for fileURL in fileURLs {
+                try fileManager.removeItem(at: fileURL)
+                results.append(fileURL.absoluteString)
+            }
+            return results
+        } catch {
+            print("Clearing directory failed.")
+            return []
+        }
+
+    }
+}
+
+func runWorker<W: Worker>(worker: W, input: [W.Input]) {
+    input.forEach { (value: W.Input) in
+        worker.start(input: value)
+    }
+}
+
+let mailJob = MailJob()
+runWorker(worker: mailJob, input: ["groover@sesamestreet.com", "bigbird@sesamestreet.com"])
+
+let fileRemover = FileRemover()
+runWorker(worker: fileRemover, input: [
+    URL(fileURLWithPath: "./cache", isDirectory: true),
+    URL(fileURLWithPath: "./tmp", isDirectory: true)
+])
+
+final class User {
+    let firstName: String
+    let lastName: String
+    init(firstName: String, lastName: String) {
+        self.firstName = firstName
+        self.lastName = lastName
+    }
+}
+
+func runWorker<W>(worker: W, input: [W.Input])
+where W: Worker, W.Input == User {
+    input.forEach { (user: W.Input) in
+        worker.start(input: user)
+        print("Finished processing user \(user.firstName) \(user.lastName)")
+    }
+}
+
+final class ImageCropper: Worker {
+
+    let size: CGSize
+    init(size: CGSize) {
+        self.size = size
+    }
+
+    func start(input: NSImage) -> Bool {
+        return true
+    }
+}
+
+final class ImageProcessor<W: Worker>
+where W.Input == NSImage, W.Output == Bool {
+    let worker: W
+
+    init(worker: W) {
+        self.worker = worker
+    }
+
+    private func process() {
+        let amount = 50
+        var offset = 0
+        var images = fetchImages(amount: amount, offset: offset)
+
+        var failedCount = 0
+        while !images.isEmpty {
+            for image in images {
+                if !worker.start(input: image) {
+                    failedCount += 1
+                }
+            }
+            offset += amount
+            images = fetchImages(amount: amount, offset: offset)
+        }
+        print("\(failedCount) images failed")
+    }
+
+    private func fetchImages(amount: Int, offset: Int) -> [NSImage] {
+        return [NSImage(), NSImage()]
+    }
+}
+
+let cropper = ImageCropper(size: CGSize(width: 200, height: 200))
+let imageProcessor: ImageProcessor<ImageCropper> = ImageProcessor(worker: cropper)
+
+print("--> 8.2 The why of associated types - exercise")
+
+protocol AbstractDamage {}
+class Fire: AbstractDamage {}
+class BluntDamage: AbstractDamage {}
+
+protocol Enemy {
+    associatedtype Damage: AbstractDamage
+    func attack() -> Damage
+}
+
+class Imp: Enemy {
+    typealias Damage = Fire
+
+    func attack() -> Fire {
+        return Fire()
+    }
+}
+
+class Centaur: Enemy {
+    typealias Damage = BluntDamage
+
+    func attack() -> BluntDamage {
+        return BluntDamage()
+    }
+}
+
+print("--> 8.3 Passing protocols with asspciated types - exercise")
+
+protocol Playable {
+    associatedtype Input
+
+    var contents: Input { get }
+    func play()
+}
+
+final class Movie: Playable {
+    let contents: URL
+
+    init(contents: URL) {
+        self.contents = contents
+    }
+
+    func play() {
+        print("Playing video at \(contents)")
+    }
+}
+
+struct AudioFile {}
+
+final class Song: Playable {
+    let contents: AudioFile
+
+    init(contents: AudioFile) {
+        self.contents = contents
+    }
+
+    func play() {
+        print("Playing song")
+    }
+}
+
+Movie(contents: URL(string: "mov.mp4")!).play()
+Song(contents: AudioFile()).play()
+
+final class Playlist<T: Playable> {
+
+    private var queue: [T] = []
+
+    func addToQueue(playable: T) {
+        queue.append(playable)
+    }
+
+    func start() {
+        queue.first?.play()
+    }
+}
+
+let moviePlaylist = Playlist<Movie>()
+moviePlaylist.addToQueue(playable: Movie(contents: URL(string: "mov1.mp4")!))
+moviePlaylist.addToQueue(playable: Movie(contents: URL(string: "mov2.mp4")!))
+moviePlaylist.start()
+
+let songPlaylist = Playlist<Song>()
+songPlaylist.addToQueue(playable: Song(contents: AudioFile()))
+songPlaylist.addToQueue(playable: Song(contents: AudioFile()))
+songPlaylist.start()
