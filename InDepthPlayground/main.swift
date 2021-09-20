@@ -576,11 +576,7 @@ print("--> 7.3 Multiple constraints - exercise")
 func occurrences<T> (in arr: [T]) -> [T: Int] {
     var result = [T: Int]()
     for elem in arr {
-        if let count = result[elem] {
-            result[elem] = count + 1
-        } else {
-            result[elem] = 1
-        }
+        result[elem] = result[elem, default: 0] + 1
     }
     return result
 }
