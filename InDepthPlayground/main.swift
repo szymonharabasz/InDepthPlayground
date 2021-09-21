@@ -158,7 +158,7 @@ struct LearningPlan {
 
     lazy private(set) var contents: String = {
         print("I'm taking my sweet time to calculate.")
-        sleep(2)
+        sleep(1)
         switch level {
         case ..<25: return "Watch an English documentary."
         case ..<50: return "Translate a newspaper article to English and transcribe one song."
@@ -576,7 +576,7 @@ print("--> 7.3 Multiple constraints - exercise")
 func occurrences<T> (in arr: [T]) -> [T: Int] {
     var result = [T: Int]()
     for elem in arr {
-        result[elem] = result[elem, default: 0] + 1
+        result[elem, default: 0] += 1
     }
     return result
 }
@@ -823,3 +823,280 @@ let songPlaylist = Playlist<Song>()
 songPlaylist.addToQueue(playable: Song(contents: AudioFile()))
 songPlaylist.addToQueue(playable: Song(contents: AudioFile()))
 songPlaylist.start()
+
+print("9.1 Iterating")
+
+let cheeses = ["gouda", "camembert", "brie"]
+var cheeseIterator = cheeses.makeIterator()
+while let cheese = cheeseIterator.next() {
+    print(cheese)
+}
+
+let result = [1, 2, 3].filter { (value) -> Bool in return value > 1 }
+print(result)
+
+func deleteFile(path: String) {
+    print("Deleting file \(path)")
+}
+
+["file_one.txt", "fi;e_2.txt"].forEach { path in deleteFile(path: path) }
+["file_one.txt", "fi;e_2.txt"].forEach(deleteFile)
+
+["First line", "Second line", "Third line"].enumerated().forEach { (index: Int, element: String) in
+    print("\(index+1): \(element)")
+}
+
+let bigRange = 0..<Int.max
+
+let filtered = bigRange.lazy.filter { (int) -> Bool in
+    return int.isMultiple(of: 2)
+}
+
+let lastThree = filtered.suffix(3)
+
+for value in lastThree {
+    print(value)
+}
+
+let text = "This is some text.\nAnother line.\nYet another line again"
+let startValue = 0
+let numberOfLineBreaks = text.reduce(startValue) { (accumulation: Int, char: Character) in
+    if char == "\n" {
+        return accumulation + 1
+    } else {
+        return accumulation
+    }
+}
+print("Number of line breaks: \(numberOfLineBreaks)")
+
+let grades = [3.2, 4.2, 2.6, 4.1]
+let results = grades.reduce(into: [:]) {
+    (results: inout [Character: Int], grade: Double) in
+    switch grade {
+    case 1..<2: results["D", default: 0] += 1
+    case 2..<3: results["C", default: 0] += 1
+    case 3..<4: results["B", default: 0] += 1
+    case 4...: results["A", default: 0] += 1
+    default: break
+    }
+}
+print(results)
+
+for (integer, string) in zip(0..<10, ["a", "b", "c"]) {
+    print("\(integer): \(string)")
+}
+
+print("--> 9.3 Creating a generic data structure with Sequence")
+
+struct InfiniteSequence<Element> {
+    private var store: [Element]
+    init(_ store: [Element]) {
+        self.store = store
+    }
+}
+
+extension InfiniteSequence: CustomStringConvertible {
+    var description: String {
+        if store.isEmpty {
+            return store.description
+        } else {
+            let desc = store.description
+            return desc.dropLast(1) + ", ...]"
+        }
+    }
+}
+print(InfiniteSequence<Int>([1,2,3]))
+/*
+struct InfiniteSequenceIterator<Element>: IteratorProtocol {
+    var store: [Element]
+    var index = 0
+    mutating func next() -> Element? {
+        if store.isEmpty {
+            return nil
+        }
+        defer {
+            index += 1
+            if index >= store.count {
+                index = 0
+            }
+        }
+        return store[index]
+    }
+}
+
+extension InfiniteSequence: Sequence {
+    func makeIterator() -> InfiniteSequenceIterator<Element> {
+        return InfiniteSequenceIterator(store: store)
+    }
+}
+ or:
+*/
+extension InfiniteSequence: Sequence {
+    func makeIterator() -> AnyIterator<Element> {
+        var index = 0
+        return AnyIterator<Element> {
+            if store.isEmpty {
+                return nil
+            }
+            defer {
+                index += 1
+                if index >= store.count {
+                    index = 0
+                }
+            }
+            return store[index]
+        }
+    }
+}
+
+extension InfiniteSequence: ExpressibleByArrayLiteral {
+    init(arrayLiteral elements: Element...) {
+        self.init(elements)
+    }
+
+    typealias ArrayLiteralElement = Element
+}
+
+let seq: InfiniteSequence = ["a", "b", "c"]
+for (first, second) in zip(0..<10, seq) {
+    print("\(first): \(second)")
+}
+
+print("--> 9..4 The Collection protocol")
+
+var arr = [1,2,3,4,5]
+let index = arr.partition { (int) -> Bool in
+    return int % 2 == 0
+}
+
+print(arr[..<index])
+print(arr[index...])
+
+var muppets = ["Kermit", "Miss Piggy", "Fozzie bear"]
+muppets += ["Statler", "Waldorf"]
+
+muppets.removeFirst()
+print(muppets)
+
+muppets.removeSubrange(1..<3)
+print(muppets)
+
+muppets.removeAll(where: { $0.contains("dorf") } )
+print(muppets)
+
+var letters = "abcd"
+var lastIndex = letters.endIndex
+while lastIndex > letters.startIndex {
+    lastIndex = letters.index(before: lastIndex)
+    print(letters[lastIndex])
+}
+
+for element in repeatElement("Broken record", count: 3) {
+    print(element)
+}
+
+print("--> 9.5 Creating a collection")
+
+struct Activity: Equatable {
+    let date: Date
+    let description: String
+}
+
+struct Day: Hashable {
+    let date: Date
+
+    init(date: Date) {
+        let unitFlags: Set<Calendar.Component> = [ .day, .month, .year ]
+        let components: DateComponents = Calendar.current.dateComponents(unitFlags, from: date)
+        guard let convertedDate = Calendar.current.date(from: components) else {
+            self.date = date
+            return
+        }
+        self.date = convertedDate
+    }
+}
+
+struct TravelPlan {
+    typealias DataType = [Day: [Activity]]
+
+    private var trips = DataType()
+
+    init(activities: [Activity]) {
+        self.trips = Dictionary(grouping:activities) { activity -> Day in
+            Day(date: activity.date)
+        }
+    }
+}
+
+extension TravelPlan: Collection {
+    typealias KeysIndex = DataType.Index
+    typealias DataElement = DataType.Element
+    var startIndex: KeysIndex {
+        return trips.keys.startIndex
+    }
+    public var endIndex: KeysIndex {
+        return trips.keys.endIndex
+    }
+
+    func index(after i: KeysIndex) -> KeysIndex {
+        return trips.index(after: i)
+    }
+
+    subscript(index: KeysIndex) -> DataElement {
+        return trips[index]
+    }
+}
+extension TravelPlan {
+    subscript(date: Date) -> [Activity] {
+        return trips[Day(date: date)] ?? []
+    }
+    subscript(day: Day) -> [Activity] {
+        return trips[day] ?? []
+    }
+}
+extension TravelPlan: ExpressibleByArrayLiteral {
+    init(arrayLiteral elements: Activity...) {
+        self.init(activities: elements)
+    }
+}
+extension TravelPlan: ExpressibleByDictionaryLiteral {
+    init(dictionaryLiteral elements: (Day, [Activity])...) {
+        self.trips = Dictionary(elements) { first, second in return first }
+    }
+}
+let adrenalineTrip = Day(date: Date())
+let adrenalineActivities = [
+    Activity(date: Date(), description: "Bungee jumping"),
+    Activity(date: Date(), description: "Driving in rush hour LA"),
+    Activity(date: Date(), description: "Ski diving")
+]
+let travelPlan: TravelPlan = [adrenalineTrip: adrenalineActivities] // note: must be literal not variable
+let defaultIterator: IndexingIterator<TravelPlan> = travelPlan.makeIterator()
+
+struct Fruits: Collection {
+    typealias Index = Int
+    typealias Element = String
+
+    let banana = "Banana"
+    let apple = "Apple"
+    let tomato = "Tomato"
+    private(set) var startIndex = 0
+    private(set) var endIndex = 3
+    subscript(position: Int) -> String {
+        switch position % 3 {
+        case 0: return banana
+        case 1: return apple
+        case 2: return tomato
+        default:
+            return ""
+        }
+    }
+
+    func index(after i: Int) -> Int {
+        return i+1
+    }
+}
+
+for (index, fruit) in zip(0..<10, Fruits()) {
+    print("\(index): \(fruit)")
+}
