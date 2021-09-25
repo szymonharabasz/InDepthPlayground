@@ -158,7 +158,7 @@ struct LearningPlan {
 
     lazy private(set) var contents: String = {
         print("I'm taking my sweet time to calculate.")
-        sleep(1)
+       // sleep(2)
         switch level {
         case ..<25: return "Watch an English documentary."
         case ..<50: return "Translate a newspaper article to English and transcribe one song."
@@ -1100,3 +1100,123 @@ struct Fruits: Collection {
 for (index, fruit) in zip(0..<10, Fruits()) {
     print("\(index): \(fruit)")
 }
+
+print("10.1 Becoming familiar with map - exercises")
+
+func makeSubArrays<T>(_ arr: [T])  -> [[T]] {
+    return arr.map { [$0] }
+}
+print(makeSubArrays(["a", "b", "c"]))
+print(makeSubArrays([100,50,1]))
+
+func transformRating(_ ratings: [String : Float]) -> [String: String] {
+    let keysWithValues = ratings.map { (key: String, value: Float) -> (String, String) in
+        var textRating: String
+        switch (value) {
+        case 1..<2: textRating = "Weak"
+        case 2..<3: textRating = "Average"
+        case 3..<4: textRating = "Good"
+        case 4..<5: textRating = "Excellent"
+        default: textRating = "Unknown"
+        }
+        return (key, textRating)
+    }
+    return Dictionary(uniqueKeysWithValues: keysWithValues)
+}
+
+let moviesAndRatings: [String: Float] = [
+    "Home ALone 4": 1.2,
+    "Who Framed Roger Rabbit?": 4.6,
+    "Star Wars: The Phantom Menace": 2.2,
+    "The Shawshank Redemption": 4.9
+]
+print(transformRating(moviesAndRatings))
+print(transformRating(moviesAndRatings).map { (title, rating) -> String in
+    return "\(title) (\(rating))"
+})
+
+print("--> 10.2 Mapping over sequences")
+
+let arrLetters = ["a", "b", "c"]
+print((0..<50).map { i in return arrLetters[i % arrLetters.count] })
+
+print("--> 10.3 Mapping over optionals")
+
+let contact =
+        ["address":
+        [
+            "zipcode": "12345",
+            "street": "broadway",
+            "city": "wichita"
+        ]
+        ]
+func capitalizedAndTrimmed(_ string: String) -> String {
+    return string.trimmingCharacters(in: .whitespaces).capitalized
+}
+
+let capitalizedStreet = contact["address"].map{ $0["street"] ?? "" }.map(capitalizedAndTrimmed) ?? ""
+let capitalizedCity = contact["address"].map{ $0["city"] ?? "" }.map(capitalizedAndTrimmed) ?? ""
+print(capitalizedStreet)
+print(capitalizedCity)
+
+print("--> 10.6 flatMapping over collections")
+
+func plusMinusOne(arr: [Int]) -> [Int] {
+    return arr.flatMap{ [$0-1,$0+1] }
+}
+print(plusMinusOne(arr: [20, 30, 40]))
+
+print((1..<50).map{ [2*$0] }.flatMap{ (arr: [Int]) -> [Int] in
+    if arr[0] % 10 == 0 {
+        return []
+    } else {
+        return arr
+    }
+})
+
+let setOfVowels = Set<Character>(["e", "y", "u", "i", "o", "a"])
+func removeVowels(_ string: String) -> String {
+    let filteredChars = string.flatMap { (c: Character) -> String in
+        if setOfVowels.contains(c) {
+            return ""
+        } else {
+            return String(c)
+        }
+    }
+    return String(filteredChars)
+}
+print(removeVowels("Mapping over optionals"))
+
+func combinations<T>(_ arr: [T]) -> [(T, T)] {
+    return arr.flatMap{ a in
+        arr.map { b in
+            return (a, b)
+        }
+    }
+}
+print(combinations([1,2]))
+print(combinations([1,2,3]))
+
+func duplicate<T>(_ arr: [T]) -> [T] {
+    return arr.flatMap{ [$0, $0] }
+}
+print(duplicate([["a","b"], ["c", "d"]]))
+
+print("--> 11.1 Why use the Result type?")
+
+let url = URL(string: "https://itunes.apple.com/search?term=iron%20man")
+callURL(with: url) {  (result: Result<Data, NetworkError>) in
+    switch result {
+    case .success(let data):
+        let value = String(data: data, encoding: .utf8)
+        print(value ?? "")
+    case .failure(let error):
+        print(error)
+    }
+}
+
+search(term: "Iron Man") { (result: SearchResult<JSON>) in
+    print(result)
+}
+
+sleep(1)
