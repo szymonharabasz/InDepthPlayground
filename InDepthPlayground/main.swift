@@ -1219,4 +1219,100 @@ search(term: "Iron Man") { (result: SearchResult<JSON>) in
     print(result)
 }
 
-sleep(1)
+// If not sleeping, the app finishes and the output from asynchronous calls is not printed
+// sleep(1)
+
+print("--> 12.2 Protocol inheritance vs. protocol composition - exercise")
+protocol Mentos {}
+protocol Coke {}
+
+struct Mixture: Mentos & Coke {}
+
+extension Mentos where Self: Coke {
+    func explode() {
+        print("Boom!!!")
+    }
+}
+
+func mix<T>(concoction: T) where T: Mentos, T: Coke {
+    concoction.explode()
+}
+
+mix(concoction: Mixture())
+
+print("--> 12.4 Extending in two directions")
+
+class Controller {}
+class RestController: Controller {}
+
+protocol MyProtocol {}
+
+extension Controller : MyProtocol {
+    func sayHello() {
+        print("hi")
+    }
+}
+extension MyProtocol where Self: Controller {
+    func sayGoodbye() {
+        print("bye")
+    }
+}
+// Not as written in the book? Controller and its subclass adhere now to both protocols
+let controller = RestController()
+controller.sayHello()
+controller.sayGoodbye()
+
+print("--> 12.5 Extending with associated types")
+
+extension Collection where Element: Equatable {
+    func unique() -> [Element] {
+        var uniqueValues = [Element]()
+        for element in self {
+            if !uniqueValues.contains(element) {
+                uniqueValues.append(element)
+            }
+        }
+        return uniqueValues
+    }
+}
+extension Collection where Element: Hashable {
+    func unique() -> [Element] {
+        var set = Set<Element>()
+        var uniqueValues = [Element]()
+        for element in self {
+            if !set.contains(element) {
+                uniqueValues.append(element)
+                set.insert(element)
+            }
+        }
+        return uniqueValues
+    }
+}
+extension Set {
+    func unique() -> [Element] {
+        return Array(self)
+    }
+}
+print(String("Extending with associated types".unique()))
+
+print("--> 12.7 Extending Sequence - exercise")
+extension Sequence {
+    func scan<T>(initialResult: T, f: (T, Element) -> T) -> [T] {
+        var output = [T]()
+        var last = initialResult
+        for element in self {
+            let new = f(last, element)
+            last = new
+            output.append(new)
+        }
+        return output
+    }
+}
+let strings = (0..<5).scan(initialResult: "") { (result: String, int: Int) -> String in
+    return "\(result)\(int)"
+}
+print(strings)
+let lowercased = ["S", "W", "I", "F", "T"].scan(initialResult: "") { (result: String, string: String) -> String in
+    return "\(result)\(string.lowercased())"
+}
+print(lowercased)
