@@ -8,6 +8,7 @@
 
 import Foundation
 import AppKit
+// import XCTest
 
 print("--> 2.1 Or vs. and")
 
@@ -1316,3 +1317,119 @@ let lowercased = ["S", "W", "I", "F", "T"].scan(initialResult: "") { (result: St
     return "\(result)\(string.lowercased())"
 }
 print(lowercased)
+
+print("--> 13.1 Dependency injection - exercise")
+/*
+struct Waffle {}
+
+protocol Chef {
+    func serve() -> Waffle
+}
+struct DefaultChef: Chef {
+    func serve() -> Waffle {
+        return Waffle()
+    }
+}
+struct MockChef: Chef {
+    let expectation: XCTestExpectation
+    func serve() -> Waffle {
+        expectation.fulfill()
+        return Waffle()
+    }
+}
+struct WaffleHouse {
+    let chef: Chef
+    func serve() -> Waffle {
+        return chef.serve()
+    }
+}
+
+class WaffleHouseTestCase: XCTestCase {
+
+    func testWareHouse() {
+        let expectation = XCTestExpectation(description: "Expected to serve a waffle")
+        let chef = MockChef(expectation: expectation)
+        let waffleHouse = WaffleHouse(chef: chef)
+        let _ = waffleHouse.serve()
+        wait(for: [expectation], timeout: 1)
+    }
+}
+let testCase = WaffleHouseTestCase()
+testCase.testWareHouse()
+*/
+
+print("--> 13.3 Dealing woth protocol shortcomings")
+
+protocol PublisherProtocol {
+    associatedtype Message
+    associatedtype Subscriber: SubscriberProtocol where Subscriber.Message == Message
+    
+    func subscribe(subscriber: Subscriber)
+}
+
+protocol SubscriberProtocol {
+    associatedtype Message
+    func update(message: Message)
+}
+
+struct EchoSubscriber<Msg>: SubscriberProtocol {
+    typealias Message = Msg
+    let id: String
+    func update(message: Message) {
+        print("\(id): \(message)")
+    }
+}
+struct UppercasedEchoSubscriber<Msg>: SubscriberProtocol {
+    typealias Message = Msg
+    let id: String
+    func update(message: Message) {
+        print("\(id): \(message)".uppercased())
+    }
+}
+struct AnySubscriber<Msg>: SubscriberProtocol {
+    typealias Message = Msg
+    
+    init<Subscriber: SubscriberProtocol>(_ subscriber: Subscriber) where Subscriber.Message == Msg {
+        _update = subscriber.update
+    }
+    private let _update: (Msg) -> ()
+    func update(message: Msg) {
+        _update(message)
+    }
+}
+struct MyMessage: CustomStringConvertible {
+    var description: String {
+        return "Message is: \(text)"
+    }
+    let text: String
+    
+}
+final class Publisher<S: SubscriberProtocol, Msg>: PublisherProtocol where S.Message == Msg {
+    typealias Message = Msg
+    
+    typealias Subscriber = S
+    
+    private var subscribers = [S]()
+    private var message: Msg
+    
+    init(of message: Msg) {
+        self.message = message
+    }
+    
+    func subscribe(subscriber: S) {
+        subscribers.append(subscriber)
+    }
+    
+    func sendEventsToSubscribers() {
+        subscribers.forEach { subscriber in
+            subscriber.update(message: self.message)
+        }
+    }
+}
+let publisher = Publisher<AnySubscriber, MyMessage>(of: MyMessage(text: "Here's an event!"))
+publisher.subscribe(subscriber: AnySubscriber(UppercasedEchoSubscriber(id: "1")))
+publisher.subscribe(subscriber: AnySubscriber(UppercasedEchoSubscriber(id: "2")))
+publisher.subscribe(subscriber: AnySubscriber(EchoSubscriber(id: "3")))
+publisher.subscribe(subscriber: AnySubscriber(EchoSubscriber(id: "4")))
+
+publisher.sendEventsToSubscribers()
